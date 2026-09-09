@@ -10,8 +10,6 @@
     --encre:#1C2622;
     --encre-pale:#5C6A64;
     --trait:#C3C9C2;
-    --olive:#5F7042;
-    --prune:#733246;
     --blanc:#F4F5F2;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -34,13 +32,15 @@
     flex:1;min-width:0;padding:12px 14px;border:1px solid var(--trait);
     border-radius:10px;background:var(--blanc);color:var(--encre);font-size:16px;
   }
-  input:focus,button:focus-visible{outline:2px solid var(--olive);outline-offset:1px}
-  .qui{display:flex;gap:8px;margin-bottom:26px}
+  input:focus,button:focus-visible{outline:2px solid var(--encre);outline-offset:1px}
+  .qui{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:26px}
   .qui button{
-    flex:1;padding:9px;border:1px solid var(--trait);background:transparent;
+    flex:1 1 auto;min-width:110px;display:flex;align-items:center;justify-content:center;gap:7px;
+    padding:9px;border:1px solid var(--trait);background:transparent;
     border-radius:10px;font-size:14px;color:var(--encre-pale);cursor:pointer;
   }
   .qui button[aria-pressed=true]{background:var(--encre);border-color:var(--encre);color:var(--blanc)}
+  .point-btn{width:7px;height:7px;border-radius:50%;flex:0 0 auto}
   .ajout{
     padding:12px 16px;border:none;border-radius:10px;background:var(--encre);
     color:var(--blanc);font-size:16px;cursor:pointer;
@@ -58,10 +58,8 @@
   }
   .corps{flex:1;min-width:0}
   .titre{display:block;word-break:break-word}
-  .tag{font-size:12.5px;color:var(--encre-pale);margin-top:3px;display:block}
-  .tag::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:6px;vertical-align:1px}
-  .tag.papa::before{background:var(--olive)}
-  .tag.maman::before{background:var(--prune)}
+  .tag{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--encre-pale);margin-top:5px}
+  .point{width:7px;height:7px;border-radius:50%;flex:0 0 auto}
   .relance{
     flex:0 0 auto;padding:8px 13px;border:1px solid var(--encre);background:transparent;
     border-radius:999px;font-size:13.5px;color:var(--encre);cursor:pointer;text-decoration:none;
@@ -72,11 +70,23 @@
 
   details{margin-top:38px;border-top:1px solid var(--trait);padding-top:16px}
   summary{cursor:pointer;color:var(--encre-pale);font-size:14px}
+  .personne{display:flex;gap:8px;align-items:center;margin-top:14px;padding-top:14px;border-top:1px solid var(--trait)}
+  .personne:first-child{margin-top:16px;padding-top:0;border-top:none}
+  .personne input{flex:1;min-width:0}
+  .supprimer{
+    flex:0 0 auto;width:34px;height:34px;border:1px solid var(--trait);border-radius:50%;
+    background:transparent;color:var(--encre-pale);font-size:18px;line-height:1;cursor:pointer;
+  }
+  .supprimer:disabled{opacity:.35;cursor:default}
+  .ajouter-personne{
+    display:block;width:100%;margin-top:14px;padding:10px;
+    border:1px dashed var(--trait);border-radius:10px;background:transparent;
+    color:var(--encre-pale);font-size:14px;cursor:pointer;
+  }
   .champ{margin-top:16px}
   .champ label{display:block;font-size:13.5px;color:var(--encre-pale);margin-bottom:5px}
-  .champ input{width:100%}
-  .aide{font-size:13px;color:var(--encre-pale);margin-top:14px}
-  .etat{font-size:13px;color:var(--olive);min-height:18px;margin-top:10px}
+  .aide{font-size:13px;color:var(--encre-pale);margin-top:16px}
+  .etat{font-size:13px;color:var(--encre-pale);min-height:18px;margin-top:6px}
 </style>
 </head>
 <body>
@@ -94,25 +104,26 @@
   <p class="vide" id="vide" hidden>Rien en attente. La liste se remplit avec le bouton Ajouter.</p>
 
   <details id="reglages">
-    <summary>Réglages</summary>
-    <div class="champ"><label for="n1">Nom</label><input type="text" id="n1"></div>
-    <div class="champ"><label for="t1">Numéro WhatsApp</label><input type="text" id="t1" inputmode="tel" placeholder="06 12 34 56 78"></div>
-    <div class="champ"><label for="n2">Nom</label><input type="text" id="n2"></div>
-    <div class="champ"><label for="t2">Numéro WhatsApp</label><input type="text" id="t2" inputmode="tel" placeholder="06 98 76 54 32"></div>
+    <summary>Réglages — personnes</summary>
+    <div id="personnes"></div>
+    <button type="button" class="ajouter-personne" id="ajouterPersonne">Ajouter une personne</button>
     <p class="etat" id="etat"></p>
-    <p class="aide">Les numéros français saisis en 06 ou 07 sont convertis au format international. Pour un autre pays, écrivez le numéro avec son indicatif.</p>
+    <p class="aide">Les numéros français saisis en 06 ou 07 sont convertis au format international. Pour un autre pays, écrivez le numéro avec son indicatif. Une personne ne peut être retirée que si elle n'a plus de tâche en attente.</p>
   </details>
 </div>
 
 <script>
 const CLE = "pensebete:v1";
+const PALETTE = ["#5F7042","#733246","#3B6E71","#9C7A29","#51586B","#8A4B2E"];
+
 let etat = {
   gens: [
-    {id:"a", nom:"Papa",  tel:""},
-    {id:"b", nom:"Maman", tel:""}
+    {id:"a", nom:"Papa",  tel:"", couleur:0},
+    {id:"b", nom:"Maman", tel:"", couleur:1}
   ],
   taches: [],
-  choix: "a"
+  choix: "a",
+  prochaineCouleur: 2
 };
 
 function charger(){
@@ -120,6 +131,10 @@ function charger(){
     const brut = localStorage.getItem(CLE);
     if(brut) etat = Object.assign(etat, JSON.parse(brut));
   }catch(e){ /* première ouverture, ou stockage local indisponible dans ce navigateur */ }
+  // migration en douceur pour les données enregistrées avant l'ajout des couleurs
+  etat.gens.forEach((g,i) => { if(typeof g.couleur !== "number") g.couleur = i; });
+  if(typeof etat.prochaineCouleur !== "number") etat.prochaineCouleur = etat.gens.length;
+  if(!etat.gens.some(g => g.id === etat.choix) && etat.gens.length) etat.choix = etat.gens[0].id;
 }
 function sauver(){
   try{ localStorage.setItem(CLE, JSON.stringify(etat)); }
@@ -134,6 +149,9 @@ function normaliser(tel){
   return t;
 }
 function personne(id){ return etat.gens.find(g => g.id === id) || etat.gens[0]; }
+function couleurDe(g){ return PALETTE[g.couleur % PALETTE.length]; }
+function nomAffiche(g){ return g.nom || "Sans nom"; }
+function idGenerer(){ return "p" + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
 
 function dessiner(){
   const qui = document.getElementById("qui");
@@ -141,9 +159,12 @@ function dessiner(){
   etat.gens.forEach(g => {
     const b = document.createElement("button");
     b.type = "button";
-    b.textContent = "Pour " + g.nom;
     b.setAttribute("aria-pressed", etat.choix === g.id);
-    b.onclick = () => { etat.choix = g.id; dessiner(); };
+    b.onclick = () => { etat.choix = g.id; sauver(); dessiner(); };
+    const point = document.createElement("span");
+    point.className = "point-btn";
+    point.style.background = couleurDe(g);
+    b.append(point, document.createTextNode(nomAffiche(g)));
     qui.appendChild(b);
   });
 
@@ -166,8 +187,11 @@ function dessiner(){
     const ti = document.createElement("span");
     ti.className = "titre"; ti.textContent = t.titre;
     const tag = document.createElement("span");
-    tag.className = "tag " + (g.id === "a" ? "papa" : "maman");
-    tag.textContent = g.nom + (g.tel ? "" : " — numéro à renseigner");
+    tag.className = "tag";
+    const point = document.createElement("span");
+    point.className = "point";
+    point.style.background = couleurDe(g);
+    tag.append(point, document.createTextNode(nomAffiche(g) + (g.tel ? "" : " — numéro à renseigner")));
     corps.append(ti, tag);
 
     const a = document.createElement("a");
@@ -187,6 +211,45 @@ function dessiner(){
   });
 }
 
+function dessinerReglages(){
+  const cont = document.getElementById("personnes");
+  cont.innerHTML = "";
+  etat.gens.forEach(g => {
+    const ligne = document.createElement("div");
+    ligne.className = "personne";
+
+    const nomI = document.createElement("input");
+    nomI.type = "text"; nomI.value = g.nom; nomI.placeholder = "Nom";
+    nomI.setAttribute("aria-label", "Nom");
+    nomI.oninput = () => { g.nom = nomI.value.trim(); document.getElementById("etat").textContent = "Enregistré."; sauver(); dessiner(); };
+
+    const telI = document.createElement("input");
+    telI.type = "text"; telI.inputMode = "tel"; telI.value = g.tel; telI.placeholder = "06 12 34 56 78";
+    telI.setAttribute("aria-label", "Numéro WhatsApp");
+    telI.oninput = () => { g.tel = telI.value.trim(); document.getElementById("etat").textContent = "Enregistré."; sauver(); dessiner(); };
+
+    const suppr = document.createElement("button");
+    suppr.type = "button"; suppr.className = "supprimer"; suppr.textContent = "×";
+    suppr.setAttribute("aria-label", "Supprimer " + (g.nom || "cette personne"));
+    const aDesTaches = etat.taches.some(t => !t.fait && t.qui === g.id);
+    const derniere = etat.gens.length <= 1;
+    if(aDesTaches || derniere){
+      suppr.disabled = true;
+      suppr.title = derniere
+        ? "Il doit rester au moins une personne."
+        : "Réattribue d'abord ses tâches en attente avant de la supprimer.";
+    }
+    suppr.onclick = () => {
+      etat.gens = etat.gens.filter(x => x.id !== g.id);
+      if(etat.choix === g.id) etat.choix = etat.gens[0].id;
+      sauver(); dessinerReglages(); dessiner();
+    };
+
+    ligne.append(nomI, telI, suppr);
+    cont.appendChild(ligne);
+  });
+}
+
 document.getElementById("form").onsubmit = e => {
   e.preventDefault();
   const champ = document.getElementById("intitule");
@@ -197,22 +260,17 @@ document.getElementById("form").onsubmit = e => {
   sauver(); dessiner();
 };
 
-[["n1","gens",0,"nom"],["t1","gens",0,"tel"],["n2","gens",1,"nom"],["t2","gens",1,"tel"]]
-.forEach(([id,_,i,cle]) => {
-  const el = document.getElementById(id);
-  el.addEventListener("focus", () => { el.value = etat.gens[i][cle]; });
-  el.addEventListener("input", () => {
-    etat.gens[i][cle] = el.value.trim();
-    document.getElementById("etat").textContent = "Enregistré.";
-    sauver(); dessiner();
-  });
-});
+document.getElementById("ajouterPersonne").onclick = () => {
+  const p = {id:idGenerer(), nom:"", tel:"", couleur:etat.prochaineCouleur++};
+  etat.gens.push(p);
+  sauver(); dessinerReglages(); dessiner();
+  const lignes = document.querySelectorAll("#personnes .personne");
+  const derniereLigne = lignes[lignes.length - 1];
+  if(derniereLigne) derniereLigne.querySelector("input").focus();
+};
 
 charger();
-document.getElementById("n1").value = etat.gens[0].nom;
-document.getElementById("t1").value = etat.gens[0].tel;
-document.getElementById("n2").value = etat.gens[1].nom;
-document.getElementById("t2").value = etat.gens[1].tel;
+dessinerReglages();
 dessiner();
 </script>
 </body>
